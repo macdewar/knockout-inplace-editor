@@ -4,13 +4,15 @@ knockout-inplace-editor
 An in-place editor binding for the KnockoutJS MVVM framework
 
 Usage
-=====
+------
 
 This knockout plugin adds a custom bindingHandler called 'editable'.  It works a lot like the 'text' binding, in that the DOM element and the associated observable always have the same text, but the 'editable' binding allows you to click on the text inline in the DOM to pop up a user-editable control.
 
 There are a few other approaches to this problem out there in the 'blogosphere', but I found them each lacking in some way -- usually because they required very verbose data-binding or markup.  All the verbosity in this one should be hidden in the file you just downloaded.
 
-So, you can do simple markup like this:
+Oh, but it requires jQuery, too.  (for now)  Not uncommon to use jQuery and Knockout together already, though.
+
+So, you can do simple markup like this ([see it work at jsfiddle](http://jsfiddle.net/C4PyR/)):
 
     <p>Here's a nice paragraph with some <span data-bind="editable: myObservable"></span> user editable text.<p>
     <script>
