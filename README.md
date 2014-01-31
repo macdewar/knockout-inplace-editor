@@ -14,39 +14,43 @@ Oh, but it requires jQuery, too.  (for now)  Not uncommon to use jQuery and Knoc
 
 So, you can do simple markup like this ([see it work at jsfiddle](http://jsfiddle.net/C4PyR/)):
 
-    <p>Here's a nice paragraph with some <span data-bind="editable: myObservable"></span> user editable text.<p>
-    <script>
-        ko.applyBindings({
-            myObservable: ko.observable('awesome')
-        });
-    </script>
+```HTML
+<p>Here's a nice paragraph with some <span data-bind="editable: myObservable"></span> user editable text.<p>
+<script>
+    ko.applyBindings({
+        myObservable: ko.observable('awesome')
+    });
+</script>
+```
 
 Not very verbose at all.  However, there are plenty of options to pass in to customize the behaviour, if you're into that sort of thing:
 
-    <p>Here's an example of a drop-down editable: <span data-bind="editable: {
-        value: myLimitedObservable,
-        options: ['option1', 'option2', 'option3']
-      }"></span>
-    </p>
-    <p>Here's a textarea where 'Ctrl-Enter' adds newlines and 'Enter' saves: <span data-bind="editable : {
-        value: myMultilineObservable,
-        rows: 6,
-        cols: 20
-      }"></span>
-    </p>
-    <p>Here's a textarea where 'Enter' adds newlines and 'Ctrl-Enter' saves: <span data-bind="editable: {
-        value: myMultilineObservable,
-        rows: 6,
-        cols: 20,
-        saveKeyPress: 'Ctrl-Enter'
-      }"></span>
-    </p>
-    <p>'blur'ing the input always saves, unless you tell it not to: <span data-bind="editable: {
-        value: myObservable,
-        blurAction: 'revert',
-        revertKeyPress: 115
-      }"></span>.  (Oh, and 'Esc' reverts too, by default.)
-    </p>
+```HTML
+<p>Here's an example of a drop-down editable: <span data-bind="editable: {
+    value: myLimitedObservable,
+    options: ['option1', 'option2', 'option3']
+  }"></span>
+</p>
+<p>Here's a textarea where 'Ctrl-Enter' adds newlines and 'Enter' saves: <span data-bind="editable : {
+    value: myMultilineObservable,
+    rows: 6,
+    cols: 20
+  }"></span>
+</p>
+<p>Here's a textarea where 'Enter' adds newlines and 'Ctrl-Enter' saves: <span data-bind="editable: {
+    value: myMultilineObservable,
+    rows: 6,
+    cols: 20,
+    saveKeyPress: 'Ctrl-Enter'
+  }"></span>
+</p>
+<p>'blur'ing the input always saves, unless you tell it not to: <span data-bind="editable: {
+    value: myObservable,
+    blurAction: 'revert',
+    revertKeyPress: 115
+  }"></span>.  (Oh, and 'Esc' reverts too, by default.)
+</p>
+```
 
 
 This is version 0.1.0, so there are some features yet to add, and some issues to be worked out.
