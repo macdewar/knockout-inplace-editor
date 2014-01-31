@@ -10,10 +10,7 @@ This knockout plugin adds a custom bindingHandler called 'editable'.  It works a
 
 There are a few other approaches to this problem out there in the 'blogosphere', but I found them each lacking in some way -- usually because they required very verbose data-binding or markup.  All the verbosity in this one should be hidden in the file you just downloaded.
 
-So,
-    <script type="text/javascript" src="path/to/knockout-inplace-editor-0.1.0.js"></script>
-
-will unlock this beauty:
+So, you can do simple markup like this:
 
     <p>Here's a nice paragraph with some <span data-bind="editable: myObservable"></span> user editable text.<p>
     <script>
