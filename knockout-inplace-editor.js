@@ -31,7 +31,7 @@ InPlaceEditingError.prototype = new Error();
 ko.bindingHandlers.editable = (function(){
   var defaults = {
     hoverText     : 'Click to edit',
-    defaultText   : '&nbsp;',
+    defaultText   : '&nbsp;',   //text shown when value of the observable is empty (null or '')
     startEvent    : 'click',    //what triggers the editable control to show up
     startControl  : null,       //clicking somewhere else to focus the editable bit (if it starts out with no text, no area to click on, for instance)
     saveKeyPress  : 'Enter',    //keypress to save.  'Ctrl-Enter' is a good option if newlines are allowed in the input.  null is also a good value, if there's a saveControl or if blurAction is 'save'.
@@ -57,7 +57,13 @@ ko.bindingHandlers.editable = (function(){
   init = function(element, valueAccessor, allBindings, deprecated, bindingContext){
     var $el = $(element),
         val = valueAccessor(),
-        $label = $('<span>'), $input, $saveControl, $revertControl,
+        $label = $('<span>'),
+        $inputContainer = $('<div>').css({
+          display: 'inline-block',
+          'vertical-align': 'bottom'
+        }),
+        $input, $saveControl, $revertControl,
+        tabindex = $el.attr('tabindex'),
         observable, opts,
         start, stop, save, revert;
 
@@ -72,6 +78,12 @@ ko.bindingHandlers.editable = (function(){
     }
     if (undefined == observable || !ko.isWriteableObservable(observable)){
       throw new InPlaceEditingError("Must provide an observable for the editable binding to save input to");
+    }
+
+    $label.html(observable() || opts.defaultText);
+
+    if (opts.hoverText && !$el.attr('title')){
+      $el.attr('title', opts.hoverText);
     }
 
     //create input node (<select> or <textarea> or <input>)
@@ -95,22 +107,30 @@ ko.bindingHandlers.editable = (function(){
         size: opts.cols
       });
     }
-    $input.hide();
-    $label.html(observable() || opts.defaultText);
+    if (tabindex){
+      $input.attr('tabindex', tabindex);
+    }
+    $inputContainer.append($input);
 
     //define event handlers
     start = function(){
+      //console.log('start ' + $el.prop('nodeName'));
       $el.addClass(opts.editingClass);
+      $input.val(observable());
       $label.hide();
-      $input.val(observable()).show().focus();
+      $inputContainer.show();
+      $input.focus();
     };
-    stop = function(){
+    stop = function(evt){
+      //console.log('stop ' + $el.prop('nodeName'));
+      $label.html(observable() || opts.defaultText);
+      $inputContainer.hide();
+      $label.show();
       $el.removeClass(opts.editingClass);
-      $input.hide();
-      $label.html(observable() || opts.defaultText).show().blur();
-      $el.blur();
+      evt.stopPropagation();
     };
     save = function(){
+      //console.log('save ' + $el.prop('nodeName'));
       if (opts.saveHandler){
         $el.addClass('savingClass');
         $input.val(opts.saveHandler($input.val()));
@@ -119,87 +139,92 @@ ko.bindingHandlers.editable = (function(){
       observable($input.val());
     };
     revert = function(){
+      //console.log('revert ' + $el.prop('nodeName'));
+      //don't really need this anymore.
       $input.val(observable());
     };
 
-    //build dom elements
-    $el.addClass(
-      opts.editableClass
-    ).append($label, $input);
-
-    if (opts.hoverText && !$el.attr('title')){
-      $el.attr('title', opts.hoverText);
-    }
-
     if (opts.saveControl && $.type(opts.saveControl) == 'string'){
+
       if (opts.saveControl.toLowerCase() == 'link'){
         $saveControl = $('<a>').attr('href', '#');
       }else{
         $saveControl = $('<button>');
       }
-      $saveControl.html(opts.saveText).on('click', function(){
+
+      $saveControl.html(opts.saveText).on('click', function(evt){
         evt.preventDefault();
         save();
-        stop();
+        stop(evt);
       });
-      $el.append($saveControl);
+
+      $inputContainer.append($saveControl);
     }
+
     if (opts.revertControl && $.type(opts.revertControl) == 'string'){
+
       if (opts.revertControl.toLowerCase() == 'button'){
         $revertControl = $('<button>');
       }else{
         $revertControl = $('<a>').attr('href', '#');
       }
-      $revertControl.html(opts.revertText).on('click', function(){
+
+      $revertControl.html(opts.revertText).on('click', function(evt){
         evt.preventDefault();
         revert();
-        stop();
+        stop(evt);
       });
-      $el.append($revertControl);
+
+      $inputContainer.append($revertControl);
     }
 
 
     //bind event handlers
-
     $el.on(opts.startEvent, start);
     if (opts.startControl){
       $(opts.startControl).on(opts.startEvent, start);
     }
 
-    $input.on('blur', function(){
-
-      (opts.blurAction == 'save' ? save : revert)();
-      stop();
+    $input.on('blur', function(evt){
+      if (opts.saveControl == null){
+       ( opts.blurAction == 'save' ? save : revert )();
+       stop(evt);
+      }
 
     }).on('keydown', function(evt){
 
       if (evt.which == opts.revertKeyPress || evt.which == 27 && opts.revertKeyPress == 'Esc'){
         evt.preventDefault();
         revert();
-        stop();
+        stop(evt);
       }
       if (evt.which == opts.saveKeyPress){
         evt.preventDefault();
         save();
-        stop();
+        stop(evt);
       }
       if (opts.saveKeyPress.match(/Enter/) && evt.which == 13){
         if (opts.saveKeyPress == 'Enter' && !(evt.altKey || evt.ctrlKey || evt.metaKey || evt.shiftKey)){
           evt.preventDefault();
           save();
-          stop();
+          stop(evt);
         }
         if (opts.saveKeyPress == 'Ctrl-Enter' && (evt.altKey || evt.ctrlKey || evt.metaKey || evt.shiftKey)){
           evt.preventDefault();
           save();
-          stop();
+          stop(evt);
         }
       }
     })
 
-    if ($input.prop('nodeName') == 'SELECT'){
+    if ($input.prop('nodeName') == 'SELECT' && opts.saveControl == null){
       $input.on('change', function(){ $input.blur() });
     }
+
+    //add it all to the DOM:
+    $el.addClass(
+      opts.editableClass
+    ).append($label, $inputContainer.hide());
 
     //just to prevent any descendant bindings.  I can't imagine
     //a scenario in which you'd have descendant nodes in an
