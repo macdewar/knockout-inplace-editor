@@ -52,16 +52,13 @@ ko.bindingHandlers.editable = (function(){
     optionsText   : null,
     optionsValue  : null,
     optionsCaption: null,
-    saveHandler   : null        //if defined, processes input before save (perhaps validation, perhaps formatting, ... ).  Should return the value to be saved. If the return value === false, the element reverts to its content before editing began.
+    saveHandler   : null        //if defined, processes input before save (perhaps validation, perhaps formatting, ... ).  Should return the value to be saved. If the return value === false, the element reverts to its content before editing began.  Asynchronous code won't work here -- it must return the processed value.
   },
   init = function(element, valueAccessor, allBindings, deprecated, bindingContext){
     var $el = $(element),
         val = valueAccessor(),
         $label = $('<span>'),
-        $inputContainer = $('<div>').css({
-          display: 'inline-block',
-          'vertical-align': 'bottom'
-        }),
+        $inputContainer = $('<div>').css({ display: 'inline-block', 'vertical-align': 'bottom' }),
         $input, $saveControl, $revertControl,
         tabindex = $el.attr('tabindex'),
         observable, opts,
@@ -119,21 +116,26 @@ ko.bindingHandlers.editable = (function(){
       $input.val(observable());
       $label.hide();
       $inputContainer.show();
-      $input.focus();
+      $input.focus().prop('disabled', false);
     };
     stop = function(evt){
       //console.log('stop ' + $el.prop('nodeName'));
       $label.html(observable() || opts.defaultText);
       $inputContainer.hide();
+      $input.prop('disabled', true);
       $label.show();
       $el.removeClass(opts.editingClass);
       evt.stopPropagation();
     };
     save = function(){
+      var processed;
       //console.log('save ' + $el.prop('nodeName'));
       if (opts.saveHandler){
         $el.addClass('savingClass');
-        $input.val(opts.saveHandler($input.val()));
+        processed = opts.saveHandler($input.val());
+        if (processed !== false){
+          $input.val(processed);
+        }
         $el.removeClass('savingClass');
       }
       observable($input.val());
@@ -245,6 +247,8 @@ ko.bindingHandlers.editable = (function(){
     if (undefined == observable || !ko.isWriteableObservable(observable)){
       throw new InPlaceEditingError("Must provide an observable for the editable binding to save input to");
     }
+    //this seems like bug bait later.
+    //TODO: make a better selector here that will always get the $label element from init().
     $(element).children('span').html(observable() || opts.defaultText);
   };
 
