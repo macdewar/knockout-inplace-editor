@@ -23,7 +23,7 @@ So, you can do simple markup like this ([see it work at jsfiddle](http://jsfiddl
 </script>
 ```
 
-Not very verbose at all.  However, there are plenty of options to pass in to customize the behaviour, if you're into that sort of thing: [jsfiddle](http://jsfiddle.net/hZ3s4/)
+Not very verbose at all.  However, there are plenty of options to pass in to customize the behaviour, if you're into that sort of thing: ([jsfiddle](http://jsfiddle.net/hZ3s4/1/))
 
 ```HTML
 <p>
