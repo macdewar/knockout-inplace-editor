@@ -81,20 +81,32 @@ ko.bindingHandlers.editable = (function(){
         $inputDiv  = $('<div>').css({ display: 'inline-block', 'vertical-align': 'bottom' }),
         $ctrlDiv   = $('<div>').css({ display: 'inline-block', 'vertical-align': 'baseline' }),
         $input, $saveControl, $revertControl,
-        tabindex = $el.attr('tabindex'),
+        tabindex,
         start, stop, save, revert;
 
     if (undefined == observable || !ko.isWriteableObservable(observable)){
       throw new InPlaceEditingError("Must provide an observable for the editable to save to");
     }
 
+    //set a few attributes on the editable DOM node
+    $el.addClass(opts.editableClass);
+
     if (opts.titleText && !$el.attr('title')){
       $el.attr('title', opts.titleText);
     }
 
+    tabindex = $el.attr('tabindex');
+    if (!tabindex){
+      $el.attr('tabindex', '0');
+      tabindex = '0';
+    }
+
     //create input node (<select> or <textarea> or <input>)
     if (opts.options){
-      $input = $('<select>');
+      $input = $('<select>').attr({
+      /*  size: opts.rows, */
+        tabindex: tabindex
+      });
       ko.applyBindingsToNode($input.get(0), {
         options: opts.options,
         optionsText: opts.optionsText,
@@ -103,18 +115,17 @@ ko.bindingHandlers.editable = (function(){
       });
     }else if (opts.rows && $.isNumeric(opts.rows) && opts.rows > 1){
       $input = $('<textarea>').attr({
+        tabindex: tabindex,
         rows: opts.rows,
         cols: opts.cols
       });
       $label.css('white-space', 'pre');
     }else{
       $input = $('<input>').attr({
+        tabindex: tabindex,
         type: opts.inputType,
         size: opts.cols
       });
-    }
-    if (tabindex){
-      $input.attr('tabindex', tabindex);
     }
     $inputDiv.append($input);
 
@@ -149,6 +160,7 @@ ko.bindingHandlers.editable = (function(){
       $input.val(observable());
     };
 
+    //add save/revert controls, if config says so.
     if (opts.saveControl && $.type(opts.saveControl) == 'string'){
 
       if (opts.saveControl.toLowerCase() == 'link'){
@@ -231,10 +243,7 @@ ko.bindingHandlers.editable = (function(){
     }
 
     //add it all to the DOM:
-    $el.addClass(
-      opts.editableClass
-    ).append($label, $inputDiv.hide());
-
+    $el.append($label, $inputDiv.hide());
 
     //Allow Knockout to remove this node without mem-leaking all the stuff we created here.
     ko.utils.domNodeDisposal.addDisposeCallback(element, function() {
