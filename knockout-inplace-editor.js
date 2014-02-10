@@ -5,21 +5,16 @@
   Include this file in your markup after knockout-3.0.0.js and you can write markup
   like this:
 
+  <style type="text/css">
+    .editable { display: inline-block; }
+  </style>
   <p>
     Some static data on your page with
-
-    <span data-bind="editable: myTextField"></span>
-
+    <div data-bind="editable: textField"></div>
     some inline, in-place user-editable text.
   </p>
-
   <script>
-
-    var vm = {
-      myTextField: ko.observable('BOOM!');
-    }
-    ko.applyBindings(vm);
-
+    ko.applyBindings( { textField: ko.observable('BOOM!') } );
   </script>
 */
 
@@ -28,59 +23,73 @@ function InPlaceEditingError(message){
 }
 InPlaceEditingError.prototype = new Error();
 
+/*
+  An extender to allow setting options on the observable.
+  Any options also set on the binding will override those set here.
+
+  e.g.
+  <div id="t1" data-bind="editable: textField"></div>
+  <div id="t2" data-bind="editable: textField, editableOptions: { defaultText: 'click me' }"></div>
+  <script>
+    ko.applyBindings({
+      textField : ko.observable().extend({
+        editableOptions: { defaultText: 'empty' }
+      })
+    });
+  </script>
+
+  When textField is empty, #t1 will contain "empty" and #t2 will contain "click me".
+*/
+ko.extenders.editableOptions = function(target, options){
+  if (options && $.isPlainObject(options)){
+    target.editableOptions = options;
+  }
+  return target;
+};
+
 ko.bindingHandlers.editable = (function(){
   var defaults = {
-    hoverText     : 'Click to edit',
-    defaultText   : '&nbsp;',   //text shown when value of the observable is empty (null or '')
-    startEvent    : 'click',    //what triggers the editable control to show up
-    startControl  : null,       //clicking somewhere else to focus the editable bit (if it starts out with no text, no area to click on, for instance)
-    saveKeyPress  : 'Enter',    //keypress to save.  'Ctrl-Enter' is a good option if newlines are allowed in the input.  null is also a good value, if there's a saveControl or if blurAction is 'save'.
-    saveControl   : null,       //'button' or 'link' or null.  inserted after input control
-    saveText      : 'OK',       //text of saveControl
-    revertKeyPress: 'Esc',      //keypress to revert
-    revertControl : null,       //'button' or 'link' or null, inserted after input control
-    revertText    : 'Cancel',   //text of revertControl
-    blurAction    : 'save',     //either 'save' or 'revert' on blur (Revert means an explicit action is required to save)
-    editableClass : 'editable', //element gets this classname
-    editingClass  : 'editing',  //element gets this classname during editing
-    savingClass   : 'saving',   //element gets this classname while saveHandler is running (maybe server-side validation with AJAX or some other long-running process)
-    invalidClass  : 'nope',     //element gets this classname when it has input that won't be saved
-    inputType     : 'text',
-    rows          : null,       //null or NaN or 0 or 1 makes an <input>, more than 1 makes <textarea>
-    cols          : null,       //used as 'size' for <input> or 'cols' for <textarea>
-    options       : null,       //if defined, only values from this array are valid input (makes a <select>)
-    optionsText   : null,
-    optionsValue  : null,
-    optionsCaption: null,
-    saveHandler   : null        //if defined, processes input before save (perhaps validation, perhaps formatting, ... ).  Should return the value to be saved. If the return value === false, the element reverts to its content before editing began.  Asynchronous code won't work here -- it must return the processed value.
+    titleText     : 'Click to edit', //element gets this titleText if it doesn't already have a title attr.
+    defaultText   : '&nbsp;',        //text shown when value of the observable is empty (null or '')
+    startEvent    : 'click focus',   //what triggers the editable control to show up
+    saveKeyPress  : 'Enter',         //keypress to save.  'Ctrl-Enter' is a good option if newlines are allowed in the input.  null is also a good value, if there's a saveControl or if blurAction is 'save'.
+    saveControl   : null,            //'button' or 'link' or null.  inserted after input control
+    saveText      : 'OK',            //text of saveControl
+    revertKeyPress: 'Esc',           //keypress to revert
+    revertControl : null,            //'button' or 'link' or null, inserted after input control
+    revertText    : 'Cancel',        //text of revertControl
+    blurAction    : 'save',          //either 'save' or 'revert' on blur (Revert means an explicit action is required to save)
+    editableClass : 'editable',      //element gets this classname
+    editingClass  : 'editing',       //element gets this classname during editing
+    emptyClass    : 'empty',         //element gets this classname when (and displays opts.defaultText) when empty.
+    savingClass   : 'saving',        //element gets this classname while saveHandler is running (maybe server-side validation with AJAX or some other long-running process)
+    invalidClass  : 'nope',          //element gets this classname when it has input that won't be saved
+    rows          : null,            //null or NaN or 0 or 1 makes an <input>, more than 1 makes <textarea>
+    cols          : null,            //used as 'size' for <input> or 'cols' for <textarea>
+    saveHandler   : null,            //if defined, processes input before save (perhaps validation, perhaps formatting, ... ).  Should return the value to be saved. If the return value === false, the element reverts to its content before editing began.  Asynchronous code won't work here -- it must return the processed value.
+    inputType     : 'text',          //--experimental--
+    options       : null,            //--experimental-- if defined, only values from this array are valid input (makes a <select>)
+    optionsText   : null,            //--experimental--
+    optionsValue  : null,            //--experimental--
+    optionsCaption: null             //--experimental--
   },
   init = function(element, valueAccessor, allBindings, deprecated, bindingContext){
-    var $el = $(element),
-        val = valueAccessor(),
-        $label = $('<span>'),
-        $inputContainer = $('<div>').css({ display: 'inline-block', 'vertical-align': 'bottom' }),
+    var $el        = $(element).empty(),
+        observable = valueAccessor(),
+        opts       = $.extend({}, defaults, observable.editableOptions, allBindings.get('editableOptions')),
+        $label     = $('<span>'),
+        $inputDiv  = $('<div>').css({ display: 'inline-block', 'vertical-align': 'bottom' }),
+        $ctrlDiv   = $('<div>').css({ display: 'inline-block', 'vertical-align': 'baseline' }),
         $input, $saveControl, $revertControl,
         tabindex = $el.attr('tabindex'),
-        observable, opts,
         start, stop, save, revert;
 
-    //get the ko.observable we're dealing with
-    if (ko.isWriteableObservable(val)){
-       opts = defaults;
-       observable = val;
-    }
-    else{
-      opts = $.extend({}, defaults, val);
-      observable = val.value || allBindings.get('value');
-    }
     if (undefined == observable || !ko.isWriteableObservable(observable)){
-      throw new InPlaceEditingError("Must provide an observable for the editable binding to save input to");
+      throw new InPlaceEditingError("Must provide an observable for the editable to save to");
     }
 
-    $label.html(observable() || opts.defaultText);
-
-    if (opts.hoverText && !$el.attr('title')){
-      $el.attr('title', opts.hoverText);
+    if (opts.titleText && !$el.attr('title')){
+      $el.attr('title', opts.titleText);
     }
 
     //create input node (<select> or <textarea> or <input>)
@@ -107,21 +116,17 @@ ko.bindingHandlers.editable = (function(){
     if (tabindex){
       $input.attr('tabindex', tabindex);
     }
-    $inputContainer.append($input);
+    $inputDiv.append($input);
 
     //define event handlers
     start = function(){
-      //console.log('start ' + $el.prop('nodeName'));
       $el.addClass(opts.editingClass);
-      $input.val(observable());
       $label.hide();
-      $inputContainer.show();
-      $input.focus().prop('disabled', false);
+      $inputDiv.show();
+      $input.val(observable()).prop('disabled', false).focus();
     };
     stop = function(evt){
-      //console.log('stop ' + $el.prop('nodeName'));
-      $label.html(observable() || opts.defaultText);
-      $inputContainer.hide();
+      $inputDiv.hide();
       $input.prop('disabled', true);
       $label.show();
       $el.removeClass(opts.editingClass);
@@ -129,8 +134,7 @@ ko.bindingHandlers.editable = (function(){
     };
     save = function(){
       var processed;
-      //console.log('save ' + $el.prop('nodeName'));
-      if (opts.saveHandler){
+      if ($.isFunction(opts.saveHandler)){
         $el.addClass('savingClass');
         processed = opts.saveHandler($input.val());
         if (processed !== false){
@@ -141,7 +145,6 @@ ko.bindingHandlers.editable = (function(){
       observable($input.val());
     };
     revert = function(){
-      //console.log('revert ' + $el.prop('nodeName'));
       //don't really need this anymore.
       $input.val(observable());
     };
@@ -160,7 +163,7 @@ ko.bindingHandlers.editable = (function(){
         stop(evt);
       });
 
-      $inputContainer.append($saveControl);
+      $inputDiv.append($saveControl);
     }
 
     if (opts.revertControl && $.type(opts.revertControl) == 'string'){
@@ -177,15 +180,18 @@ ko.bindingHandlers.editable = (function(){
         stop(evt);
       });
 
-      $inputContainer.append($revertControl);
+      $inputDiv.append($revertControl);
     }
 
 
     //bind event handlers
     $el.on(opts.startEvent, start);
-    if (opts.startControl){
-      $(opts.startControl).on(opts.startEvent, start);
-    }
+
+    //don't "do" this; just expose a start event that
+    //a startControl can trigger.
+    //if (opts.startControl){
+    //  $(opts.startControl).on(opts.startEvent, start);
+    //}
 
     $input.on('blur', function(evt){
       if (opts.saveControl == null){
@@ -219,6 +225,7 @@ ko.bindingHandlers.editable = (function(){
       }
     })
 
+    //hide the SELECT when an option is chosen.
     if ($input.prop('nodeName') == 'SELECT' && opts.saveControl == null){
       $input.on('change', function(){ $input.blur() });
     }
@@ -226,7 +233,13 @@ ko.bindingHandlers.editable = (function(){
     //add it all to the DOM:
     $el.addClass(
       opts.editableClass
-    ).append($label, $inputContainer.hide());
+    ).append($label, $inputDiv.hide());
+
+
+    //Allow Knockout to remove this node without mem-leaking all the stuff we created here.
+    ko.utils.domNodeDisposal.addDisposeCallback(element, function() {
+        $el.empty();
+    });
 
     //just to prevent any descendant bindings.  I can't imagine
     //a scenario in which you'd have descendant nodes in an
@@ -234,26 +247,45 @@ ko.bindingHandlers.editable = (function(){
     return { controlsDescendantBindings: true };
   },
   update = function(element, valueAccessor, allBindings, deprecated, bindingContext){
-    var opts, val = valueAccessor();
+    var $el        = $(element),
+        $label     = $el.children('span').first(),
+        $input     = $el.find('input,select,textarea').first(),
+        observable = valueAccessor(),
+        opts       = $.extend({}, defaults, observable.editableOptions, allBindings.get('editableOptions')),
+        idx;
 
-    if (ko.isWriteableObservable(val)){
-       opts = defaults;
-       observable = val;
+    $input.val(observable());
+
+    if ($input.prop('nodeName') == 'SELECT'){
+      idx = $input.prop('selectedIndex');
+      if (opts.optionsCaption && idx > 0){
+        idx--;
+      }
+      selectedObj = opts.options[idx];
+
+      if (selectedObj && $.type(opts.optionsText) == 'function'){
+        label = opts.optionsText(selectedObj);
+      }else if (selectedObj && $.type(opts.optionsText) == 'string'){
+        label = selectedObj[opts.optionsText];
+      }else{
+        label = observable();
+      }
+    }else{
+      label = observable();
     }
-    else{
-      opts = $.extend({}, defaults, val);
-      observable = val.value || allBindings.get('value');
+
+    if (label){
+      $el.removeClass(opts.emptyClass);
+      $label.html(label);
+    }else{
+      $el.addClass(opts.emptyClass);
+      $label.html(opts.defaultText);
     }
-    if (undefined == observable || !ko.isWriteableObservable(observable)){
-      throw new InPlaceEditingError("Must provide an observable for the editable binding to save input to");
-    }
-    //this seems like bug bait later.
-    //TODO: make a better selector here that will always get the $label element from init().
-    $(element).children('span').html(observable() || opts.defaultText);
   };
 
   return {
+    defaults: defaults,
     init: init,
     update: update
-  }
+  };
 })();
