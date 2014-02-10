@@ -252,16 +252,18 @@ ko.bindingHandlers.editable = (function(){
         $input     = $el.find('input,select,textarea').first(),
         observable = valueAccessor(),
         opts       = $.extend({}, defaults, observable.editableOptions, allBindings.get('editableOptions')),
-        idx;
+        idx, selectedObj = null;
 
     $input.val(observable());
 
     if ($input.prop('nodeName') == 'SELECT'){
       idx = $input.prop('selectedIndex');
-      if (opts.optionsCaption && idx > 0){
+      if (opts.optionsCaption){
         idx--;
       }
-      selectedObj = opts.options[idx];
+      if (idx > -1){
+        selectedObj = opts.options[idx];
+      }
 
       if (selectedObj && $.type(opts.optionsText) == 'function'){
         label = opts.optionsText(selectedObj);
