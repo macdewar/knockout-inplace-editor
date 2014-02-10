@@ -6,11 +6,11 @@ An in-place editor binding for the KnockoutJS MVVM framework
 Usage
 ------
 
-This knockout plugin adds a custom bindingHandler called 'editable'.  It works a lot like the 'text' binding, in that the DOM element and the associated observable always have the same text, but the 'editable' binding allows you to click on the text inline in the DOM to pop up a user-editable control.
+This knockout plugin adds a custom bindingHandler called 'editable'.  It's like a combination of the text and value bindings in that the DOM element shows the text stored in the observable, but it also allows you to click on the inline text to pop up an input/textarea/select to edit the value..
 
-There are a few other approaches to this problem out there in the 'blogosphere', but I found them each lacking in some way -- usually because they required very verbose data-binding or markup.  All the verbosity in this one should be hidden in the file you just downloaded.
+There are a few other approaches to this scenario out there in the 'blogosphere', but I found them each lacking in some way -- usually because they required very verbose data-binding or markup.  All the verbosity in this one should be hidden in the file you just downloaded.
 
-Oh, but it requires jQuery, too.  (for now)  Not uncommon to use jQuery and Knockout together already, though.
+For now it also requires jQuery, too.  I will probably drop that dependency by version 1.0.  It's not uncommon to be using jQuery and Knockout together already, though.
 
 So, you can do simple markup like this ([see it work at jsfiddle](http://jsfiddle.net/C4PyR/)):
 
@@ -26,31 +26,32 @@ So, you can do simple markup like this ([see it work at jsfiddle](http://jsfiddl
 Not very verbose at all.  However, there are plenty of options to pass in to customize the behaviour, if you're into that sort of thing:
 
 ```HTML
-<p>Here's an example of a drop-down editable: <span data-bind="editable: {
-    value: myLimitedObservable,
-    options: ['option1', 'option2', 'option3']
-  }"></span>
+<p>
+  Here's an example of a drop-down editable:
+  <span data-bind="editable: myLimitedObservable,
+                   editableOptions: { options: ['option1', 'option2', 'option3'] }">
+  </span>
 </p>
-<p>Here's a textarea where 'Ctrl-Enter' adds newlines and 'Enter' saves: <span data-bind="editable : {
-    value: myMultilineObservable,
-    rows: 6,
-    cols: 20
-  }"></span>
+<p>
+  Here's a textarea where 'Ctrl-Enter' adds newlines and 'Enter' saves:
+  <span data-bind="editable: myMultilineObservable,
+                   editableOptions: { rows: 6, cols: 20 }">
+  </span>
 </p>
-<p>Here's a textarea where 'Enter' adds newlines and 'Ctrl-Enter' saves: <span data-bind="editable: {
-    value: myMultilineObservable,
-    rows: 6,
-    cols: 20,
-    saveKeyPress: 'Ctrl-Enter'
-  }"></span>
+<p>
+  Here's a textarea where 'Enter' adds newlines and 'Ctrl-Enter' saves:
+  <span data-bind="editable:  myMultilineObservable,
+                   editableOptions: {  rows: 6, cols: 20, saveKeyPress: 'Ctrl-Enter' }">
+  </span>
 </p>
-<p>'blur'ing the input always saves, unless you tell it not to: <span data-bind="editable: {
-    value: myObservable,
-    blurAction: 'revert',
-    revertKeyPress: 115
-  }"></span>.  (Oh, and 'Esc' reverts too, by default.)
+<p>
+  'blur'ing the input generally saves, unless you tell it not to:
+   <span data-bind="editable: myObservable,
+                    editableOptions: { blurAction: 'revert', revertKeyPress: 115 }">
+  </span>.
+  (Oh, and 'Esc' reverts too, by default.)
 </p>
 ```
 
 
-This is version 0.1.0, so there are some features yet to add, and some issues to be worked out.
+This is version ~~0.1.0~~ 0.2.0, so there are some features yet to add, and some issues to be worked out.
