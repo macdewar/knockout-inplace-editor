@@ -23,7 +23,7 @@ So, you can do simple markup like this ([see it work at jsfiddle](http://jsfiddl
 </script>
 ```
 
-Not very verbose at all.  However, there are plenty of options to pass in to customize the behaviour, if you're into that sort of thing:
+Not very verbose at all.  However, there are plenty of options to pass in to customize the behaviour, if you're into that sort of thing: [jsfiddle](http://jsfiddle.net/hZ3s4/)
 
 ```HTML
 <p>
@@ -34,22 +34,22 @@ Not very verbose at all.  However, there are plenty of options to pass in to cus
 </p>
 <p>
   Here's a textarea where 'Ctrl-Enter' adds newlines and 'Enter' saves:
-  <span data-bind="editable: myMultilineObservable,
-                   editableOptions: { rows: 6, cols: 20 }">
-  </span>
+  <div data-bind="editable: myMultilineObservable,
+                  editableOptions: { rows: 6, cols: 20 }">
+  </div>
 </p>
 <p>
   Here's a textarea where 'Enter' adds newlines and 'Ctrl-Enter' saves:
-  <span data-bind="editable:  myMultilineObservable,
-                   editableOptions: {  rows: 6, cols: 20, saveKeyPress: 'Ctrl-Enter' }">
-  </span>
+  <div data-bind="editable:  myMultilineObservable,
+                  editableOptions: {  rows: 6, cols: 20, saveKeyPress: 'Ctrl-Enter' }">
+  </div>
 </p>
 <p>
   'blur'ing the input generally saves, unless you tell it not to:
    <span data-bind="editable: myObservable,
                     editableOptions: { blurAction: 'revert', revertKeyPress: 115 }">
   </span>.
-  (Oh, and 'Esc' reverts too, by default.)
+  (Oh, and 'Esc' reverts by default, but we changed that to 'F4' here.)
 </p>
 ```
 
